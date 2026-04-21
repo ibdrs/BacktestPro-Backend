@@ -1,0 +1,33 @@
+{
+  "name": "backtestpro-backend",
+  "version": "1.0.0",
+  "description": "BacktestPro backend API",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "cross-env NODE_OPTIONS=--experimental-sqlite nodemon --watch src --ext ts --exec tsx src/server.ts",
+    "build": "tsc",
+    "start": "cross-env NODE_OPTIONS=--experimental-sqlite node dist/server.js",
+    "test": "cross-env NODE_OPTIONS=--experimental-sqlite jest",
+    "test:watch": "cross-env NODE_OPTIONS=--experimental-sqlite jest --watch"
+  },
+  "dependencies": {
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.12",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^22.0.0",
+    "@types/supertest": "^6.0.2",
+    "cross-env": "^7.0.3",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.0",
+    "supertest": "^6.3.4",
+    "ts-jest": "^29.1.2",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.2"
+  }
+}
