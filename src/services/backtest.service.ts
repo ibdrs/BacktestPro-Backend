@@ -52,6 +52,7 @@ export async function runBacktest(input: BacktestRunInput) {
       final_portfolio_value: result.finalPortfolioValue,
       total_return_pct:      result.totalReturnPct,
       completed_at:          new Date().toISOString(),
+      equity_curve:          result.equityCurve,
     });
 
     return getBacktestById(runId);

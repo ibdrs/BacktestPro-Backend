@@ -1,5 +1,6 @@
 import pool from '../db/postgres';
 import { BacktestRun } from '../types/backtest';
+import { EquityCurvePoint } from '../engine/backtest-engine';
 
 export async function insertBacktestRun(
   run: Omit<BacktestRun, 'id' | 'created_at'>
@@ -22,6 +23,7 @@ export async function updateBacktestRunResult(
     final_portfolio_value: number;
     total_return_pct: number;
     completed_at: string;
+    equity_curve: EquityCurvePoint[];
   }
 ): Promise<void> {
   await pool.query(
@@ -32,8 +34,9 @@ export async function updateBacktestRunResult(
        final_cash            = $4,
        final_portfolio_value = $5,
        total_return_pct      = $6,
-       completed_at          = $7
-     WHERE id = $8`,
+       completed_at          = $7,
+       equity_curve          = $8
+     WHERE id = $9`,
     [
       data.status,
       data.start_date,
@@ -42,6 +45,7 @@ export async function updateBacktestRunResult(
       data.final_portfolio_value,
       data.total_return_pct,
       data.completed_at,
+      JSON.stringify(data.equity_curve),
       id,
     ]
   );
@@ -53,13 +57,13 @@ export async function updateBacktestStatus(id: number, status: string): Promise<
 
 export async function findAllBacktestRuns(): Promise<BacktestRun[]> {
   const { rows } = await pool.query<BacktestRun>(
-    'SELECT * FROM backtest_runs ORDER BY created_at DESC'
+    'SELECT id, dataset_id, strategy_name, status, initial_capital, position_size, start_date, end_date, final_cash, final_portfolio_value, total_return_pct, created_at, completed_at FROM backtest_runs ORDER BY created_at DESC'
   );
   return rows;
 }
 
-export async function findBacktestRunById(id: number): Promise<BacktestRun | undefined> {
-  const { rows } = await pool.query<BacktestRun>(
+export async function findBacktestRunById(id: number): Promise<(BacktestRun & { equity_curve: EquityCurvePoint[] }) | undefined> {
+  const { rows } = await pool.query<BacktestRun & { equity_curve: EquityCurvePoint[] }>(
     'SELECT * FROM backtest_runs WHERE id = $1',
     [id]
   );

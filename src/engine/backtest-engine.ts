@@ -5,6 +5,11 @@ import { createPortfolio, getPortfolioValue } from './execution/portfolio';
 import { getMomentumSignal } from './strategy/momentum.strategy';
 import { executeSignal } from './execution/order-executor';
 
+export interface EquityCurvePoint {
+  timestamp: number;
+  value: number;
+}
+
 export interface BacktestEngineResult {
   trades: Omit<Trade, 'id' | 'backtest_run_id'>[];
   finalPortfolio: Portfolio;
@@ -12,17 +17,9 @@ export interface BacktestEngineResult {
   startDate: number | null;
   endDate: number | null;
   totalReturnPct: number;
+  equityCurve: EquityCurvePoint[];
 }
 
-/**
- * Core backtest loop:
- *
- * Iterates through candles in chronological order (index 1 onward, because we
- * need a "previous" candle to generate a signal). For each candle:
- *   1. Ask the strategy for a signal.
- *   2. Pass the signal to the order executor.
- *   3. Update the portfolio.
- */
 export function runBacktestEngine(
   candles: Candle[],
   initialCapital: number,
@@ -35,12 +32,14 @@ export function runBacktestEngine(
 
   let portfolio = createPortfolio(initialCapital);
   const trades: Omit<Trade, 'id' | 'backtest_run_id'>[] = [];
+  const equityCurve: EquityCurvePoint[] = [];
+
+  equityCurve.push({ timestamp: candles[0].timestamp, value: initialCapital });
 
   for (let i = 1; i < candles.length; i++) {
     const current  = candles[i];
     const previous = candles[i - 1];
 
-    // Signal generation
     let signal;
     if (strategyName === 'momentum') {
       signal = getMomentumSignal(current, previous);
@@ -48,25 +47,30 @@ export function runBacktestEngine(
       throw new Error(`Unknown strategy: "${strategyName}"`);
     }
 
-    // Order execution
     const result = executeSignal(signal, current, portfolio, positionSize);
     portfolio = result.portfolio;
 
     if (result.trade) {
       trades.push(result.trade);
     }
+
+    equityCurve.push({
+      timestamp: current.timestamp,
+      value: getPortfolioValue(portfolio, current.close),
+    });
   }
 
-  const lastCandle         = candles[candles.length - 1];
+  const lastCandle          = candles[candles.length - 1];
   const finalPortfolioValue = getPortfolioValue(portfolio, lastCandle.close);
   const totalReturnPct      = ((finalPortfolioValue - initialCapital) / initialCapital) * 100;
 
   return {
     trades,
-    finalPortfolio:      portfolio,
+    finalPortfolio: portfolio,
     finalPortfolioValue,
-    startDate:           candles[0].timestamp,
-    endDate:             lastCandle.timestamp,
+    startDate:   candles[0].timestamp,
+    endDate:     lastCandle.timestamp,
     totalReturnPct,
+    equityCurve,
   };
 }
