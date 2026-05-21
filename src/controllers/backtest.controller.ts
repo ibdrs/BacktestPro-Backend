@@ -27,23 +27,23 @@ export async function createBacktest(
   }
 }
 
-export function getBacktests(
+export async function getBacktests(
   _req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
-    res.json(backtestService.getAllBacktests());
+    res.json(await backtestService.getAllBacktests());
   } catch (err) {
     next(err);
   }
 }
 
-export function getBacktestById(
+export async function getBacktestById(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
     const id = Number(req.params.id);
     if (isNaN(id)) {
@@ -51,7 +51,7 @@ export function getBacktestById(
       return;
     }
 
-    const run = backtestService.getBacktestById(id);
+    const run = await backtestService.getBacktestById(id);
     if (!run) {
       res.status(404).json({ error: `Backtest run ${id} not found.` });
       return;

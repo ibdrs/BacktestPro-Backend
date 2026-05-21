@@ -2,11 +2,15 @@ import request from 'supertest';
 import path from 'path';
 import app from '../../src/app';
 import { runMigrations } from '../../src/db/migrations';
+import pool from '../../src/db/postgres';
 
-// Each test file gets its own fresh in-memory DB (Jest module isolation).
-// We create the schema here before any test runs.
-beforeAll(() => {
-  runMigrations();
+beforeAll(async () => {
+  await runMigrations();
+  await pool.query('TRUNCATE trades, backtest_runs, candles, datasets RESTART IDENTITY CASCADE');
+});
+
+afterAll(async () => {
+  await pool.end();
 });
 
 const CSV_PATH = path.join(__dirname, '../fixtures/valid-candles.csv');
@@ -21,7 +25,7 @@ describe('POST /api/datasets/import', () => {
     expect(res.body.dataset).toBeDefined();
     expect(res.body.dataset.id).toBeDefined();
     expect(res.body.validRows).toBeGreaterThan(0);
-    expect(res.body.totalRows).toBe(res.body.validRows); // fixture has no bad rows
+    expect(res.body.totalRows).toBe(res.body.validRows);
     expect(res.body.skippedRows).toBe(0);
     expect(Array.isArray(res.body.errors)).toBe(true);
   });
@@ -32,7 +36,6 @@ describe('POST /api/datasets/import', () => {
   });
 
   it('returns 400 when a non-CSV file is attached', async () => {
-    // Create an inline buffer with a fake txt content and send it as .txt
     const res = await request(app)
       .post('/api/datasets/import')
       .attach('file', Buffer.from('hello world'), {
@@ -52,7 +55,6 @@ describe('GET /api/datasets', () => {
   });
 
   it('includes the dataset we just imported', async () => {
-    // Import one more
     await request(app)
       .post('/api/datasets/import')
       .attach('file', CSV_PATH);

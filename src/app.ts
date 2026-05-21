@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import routes from './routes';
@@ -8,6 +9,12 @@ import { swaggerDocument, swaggerUiOptions } from './swagger';
 dotenv.config();
 
 const app = express();
+
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',')
+  : ['http://localhost:8080'];
+
+app.use(cors({ origin: allowedOrigins }));
 
 // Parse JSON and URL-encoded bodies
 app.use(express.json());

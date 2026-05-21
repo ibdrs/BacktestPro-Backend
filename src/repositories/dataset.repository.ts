@@ -1,33 +1,32 @@
-import db from '../db/sqlite';
+import pool from '../db/postgres';
 import { Dataset } from '../types/dataset';
 
-export function insertDataset(
+export async function insertDataset(
   dataset: Omit<Dataset, 'id' | 'created_at'>
-): number {
-  const stmt = db.prepare(`
-    INSERT INTO datasets (name, original_filename, row_count)
-    VALUES (?, ?, ?)
-  `);
-  const result = stmt.run(
-    dataset.name,
-    dataset.original_filename,
-    dataset.row_count
+): Promise<number> {
+  const { rows } = await pool.query<{ id: number }>(
+    `INSERT INTO datasets (name, original_filename, row_count)
+     VALUES ($1, $2, $3) RETURNING id`,
+    [dataset.name, dataset.original_filename, dataset.row_count]
   );
-  return result.lastInsertRowid as number;
+  return rows[0].id;
 }
 
-export function updateDatasetRowCount(id: number, rowCount: number): void {
-  db.prepare('UPDATE datasets SET row_count = ? WHERE id = ?').run(rowCount, id);
+export async function updateDatasetRowCount(id: number, rowCount: number): Promise<void> {
+  await pool.query('UPDATE datasets SET row_count = $1 WHERE id = $2', [rowCount, id]);
 }
 
-export function findAllDatasets(): Dataset[] {
-  return db
-    .prepare('SELECT * FROM datasets ORDER BY created_at DESC')
-    .all() as unknown as Dataset[];
+export async function findAllDatasets(): Promise<Dataset[]> {
+  const { rows } = await pool.query<Dataset>(
+    'SELECT * FROM datasets ORDER BY created_at DESC'
+  );
+  return rows;
 }
 
-export function findDatasetById(id: number): Dataset | undefined {
-  return db
-    .prepare('SELECT * FROM datasets WHERE id = ?')
-    .get(id) as unknown as Dataset | undefined;
+export async function findDatasetById(id: number): Promise<Dataset | undefined> {
+  const { rows } = await pool.query<Dataset>(
+    'SELECT * FROM datasets WHERE id = $1',
+    [id]
+  );
+  return rows[0];
 }

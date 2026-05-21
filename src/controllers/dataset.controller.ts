@@ -31,13 +31,13 @@ export async function importDataset(
   }
 }
 
-export function getDatasets(
+export async function getDatasets(
   _req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
-    res.json(datasetService.getAllDatasets());
+    res.json(await datasetService.getAllDatasets());
   } catch (err) {
     next(err);
   }

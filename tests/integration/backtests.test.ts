@@ -2,20 +2,25 @@ import request from 'supertest';
 import path from 'path';
 import app from '../../src/app';
 import { runMigrations } from '../../src/db/migrations';
+import pool from '../../src/db/postgres';
 
 const CSV_PATH = path.join(__dirname, '../fixtures/valid-candles.csv');
 
 let datasetId: number;
 
-// Set up schema and seed a dataset that all backtest tests will use
 beforeAll(async () => {
-  runMigrations();
+  await runMigrations();
+  await pool.query('TRUNCATE trades, backtest_runs, candles, datasets RESTART IDENTITY CASCADE');
 
   const res = await request(app)
     .post('/api/datasets/import')
     .attach('file', CSV_PATH);
 
   datasetId = res.body.dataset.id;
+});
+
+afterAll(async () => {
+  await pool.end();
 });
 
 const validBody = () => ({
@@ -38,7 +43,7 @@ describe('POST /api/backtests', () => {
   it('returns 400 when required fields are missing', async () => {
     const res = await request(app)
       .post('/api/backtests')
-      .send({ strategy: 'momentum' }); // missing datasetId, initialCapital, positionSize
+      .send({ strategy: 'momentum' });
 
     expect(res.status).toBe(400);
     expect(Array.isArray(res.body.errors)).toBe(true);
@@ -80,7 +85,6 @@ describe('GET /api/backtests', () => {
 
 describe('GET /api/backtests/:id', () => {
   it('returns a specific backtest run with its trades', async () => {
-    // Create a run first
     const created = await request(app).post('/api/backtests').send(validBody());
     const id      = created.body.id;
 

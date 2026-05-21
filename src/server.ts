@@ -3,9 +3,13 @@ import { runMigrations } from './db/migrations';
 
 const PORT = process.env.PORT || 3000;
 
-// Apply DB schema on startup before accepting requests
-runMigrations();
-
-app.listen(PORT, () => {
-  console.log(`BacktestPro backend running on http://localhost:${PORT}`);
-});
+runMigrations()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`BacktestPro backend running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('[DB] Migration failed, server not started:', err);
+    process.exit(1);
+  });

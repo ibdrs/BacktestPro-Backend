@@ -1,10 +1,28 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: backtestpro
+      POSTGRES_PASSWORD: backtestpro
+      POSTGRES_DB: backtestpro
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     build: .
     ports:
       - "3000:3000"
     env_file:
       - .env
+    environment:
+      DATABASE_URL: postgres://backtestpro:backtestpro@postgres:5432/backtestpro
     volumes:
-      - ./data:/app/data
       - ./uploads:/app/uploads
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

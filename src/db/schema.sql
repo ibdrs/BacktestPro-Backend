@@ -1,54 +1,48 @@
--- All tables use IF NOT EXISTS so this script is safe to run multiple times.
-
 CREATE TABLE IF NOT EXISTS datasets (
-  id               INTEGER PRIMARY KEY AUTOINCREMENT,
-  name             TEXT    NOT NULL,
-  original_filename TEXT   NOT NULL,
-  row_count        INTEGER NOT NULL DEFAULT 0,
-  created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
+  id                SERIAL        PRIMARY KEY,
+  name              TEXT          NOT NULL,
+  original_filename TEXT          NOT NULL,
+  row_count         INTEGER       NOT NULL DEFAULT 0,
+  created_at        TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS candles (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  dataset_id INTEGER NOT NULL,
-  timestamp  INTEGER NOT NULL,   -- Unix milliseconds
-  open       REAL    NOT NULL,
-  high       REAL    NOT NULL,
-  low        REAL    NOT NULL,
-  close      REAL    NOT NULL,
-  volume     REAL    NOT NULL,
-  FOREIGN KEY (dataset_id) REFERENCES datasets(id) ON DELETE CASCADE
+  id         SERIAL      PRIMARY KEY,
+  dataset_id INTEGER     NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
+  timestamp  BIGINT      NOT NULL,
+  open       DOUBLE PRECISION NOT NULL,
+  high       DOUBLE PRECISION NOT NULL,
+  low        DOUBLE PRECISION NOT NULL,
+  close      DOUBLE PRECISION NOT NULL,
+  volume     DOUBLE PRECISION NOT NULL
 );
 
--- Index to fetch candles for a dataset in chronological order quickly
 CREATE INDEX IF NOT EXISTS idx_candles_dataset_timestamp
   ON candles(dataset_id, timestamp);
 
 CREATE TABLE IF NOT EXISTS backtest_runs (
-  id                   INTEGER PRIMARY KEY AUTOINCREMENT,
-  dataset_id           INTEGER NOT NULL,
-  strategy_name        TEXT    NOT NULL,
-  status               TEXT    NOT NULL DEFAULT 'pending',  -- pending | running | completed | failed
-  initial_capital      REAL    NOT NULL,
-  position_size        REAL    NOT NULL,
-  start_date           INTEGER,                             -- first candle Unix ms
-  end_date             INTEGER,                             -- last candle Unix ms
-  final_cash           REAL,
-  final_portfolio_value REAL,
-  total_return_pct     REAL,
-  created_at           TEXT    NOT NULL DEFAULT (datetime('now')),
-  completed_at         TEXT,
-  FOREIGN KEY (dataset_id) REFERENCES datasets(id)
+  id                    SERIAL        PRIMARY KEY,
+  dataset_id            INTEGER       NOT NULL REFERENCES datasets(id),
+  strategy_name         TEXT          NOT NULL,
+  status                TEXT          NOT NULL DEFAULT 'pending',
+  initial_capital       DOUBLE PRECISION NOT NULL,
+  position_size         DOUBLE PRECISION NOT NULL,
+  start_date            BIGINT,
+  end_date              BIGINT,
+  final_cash            DOUBLE PRECISION,
+  final_portfolio_value DOUBLE PRECISION,
+  total_return_pct      DOUBLE PRECISION,
+  created_at            TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  completed_at          TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS trades (
-  id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  backtest_run_id INTEGER NOT NULL,
-  timestamp       INTEGER NOT NULL,   -- Unix milliseconds
-  side            TEXT    NOT NULL,   -- BUY | SELL
-  price           REAL    NOT NULL,
-  quantity        REAL    NOT NULL,
-  value           REAL    NOT NULL,
-  pnl             REAL    NOT NULL DEFAULT 0,
-  FOREIGN KEY (backtest_run_id) REFERENCES backtest_runs(id) ON DELETE CASCADE
+  id              SERIAL           PRIMARY KEY,
+  backtest_run_id INTEGER          NOT NULL REFERENCES backtest_runs(id) ON DELETE CASCADE,
+  timestamp       BIGINT           NOT NULL,
+  side            TEXT             NOT NULL,
+  price           DOUBLE PRECISION NOT NULL,
+  quantity        DOUBLE PRECISION NOT NULL,
+  value           DOUBLE PRECISION NOT NULL,
+  pnl             DOUBLE PRECISION NOT NULL DEFAULT 0
 );

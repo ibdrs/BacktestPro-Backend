@@ -1,34 +1,40 @@
-import db from '../db/sqlite';
+import pool from '../db/postgres';
 import { Candle } from '../types/candle';
 
-// Insert all the candles in one transaction
-export function insertCandles(candles: Omit<Candle, 'id'>[]): void {
-  const stmt = db.prepare(`
-    INSERT INTO candles (dataset_id, timestamp, open, high, low, close, volume)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
+export async function insertCandles(candles: Omit<Candle, 'id'>[]): Promise<void> {
+  if (candles.length === 0) return;
 
-  db.exec('BEGIN');
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     for (const c of candles) {
-      stmt.run(c.dataset_id, c.timestamp, c.open, c.high, c.low, c.close, c.volume);
+      await client.query(
+        `INSERT INTO candles (dataset_id, timestamp, open, high, low, close, volume)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [c.dataset_id, c.timestamp, c.open, c.high, c.low, c.close, c.volume]
+      );
     }
-    db.exec('COMMIT');
+    await client.query('COMMIT');
   } catch (err) {
-    db.exec('ROLLBACK');
+    await client.query('ROLLBACK');
     throw err;
+  } finally {
+    client.release();
   }
 }
 
-export function findCandlesByDatasetId(datasetId: number): Candle[] {
-  return db
-    .prepare('SELECT * FROM candles WHERE dataset_id = ? ORDER BY timestamp ASC')
-    .all(datasetId) as unknown as Candle[];
+export async function findCandlesByDatasetId(datasetId: number): Promise<Candle[]> {
+  const { rows } = await pool.query<Candle>(
+    'SELECT * FROM candles WHERE dataset_id = $1 ORDER BY timestamp ASC',
+    [datasetId]
+  );
+  return rows;
 }
 
-export function countCandlesByDatasetId(datasetId: number): number {
-  const row = db
-    .prepare('SELECT COUNT(*) as count FROM candles WHERE dataset_id = ?')
-    .get(datasetId) as unknown as { count: number };
-  return row.count;
+export async function countCandlesByDatasetId(datasetId: number): Promise<number> {
+  const { rows } = await pool.query<{ count: string }>(
+    'SELECT COUNT(*) AS count FROM candles WHERE dataset_id = $1',
+    [datasetId]
+  );
+  return Number(rows[0].count);
 }
