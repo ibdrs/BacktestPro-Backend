@@ -6,6 +6,7 @@ module.exports = {
   testMatch: ['**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   collectCoverageFrom: ['src/**/*.ts'],
+  globalSetup: '<rootDir>/tests/jest.globalSetup.js',
   // Set environment variables before any module is loaded in each test suite
   setupFiles: ['<rootDir>/tests/jest.env.ts'],
   transform: {
