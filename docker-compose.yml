@@ -12,6 +12,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   backend:
+    image: ghcr.io/ibdrs/backtestpro-backend:latest
     build: .
     ports:
       - "3000:3000"
