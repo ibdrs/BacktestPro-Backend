@@ -25,5 +25,12 @@ services:
     depends_on:
       - postgres
 
+  frontend:
+    image: ghcr.io/ibdrs/backtestpro-frontend:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
