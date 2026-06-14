@@ -13,5 +13,10 @@ export async function runMigrations(): Promise<void> {
     ADD COLUMN IF NOT EXISTS equity_curve JSONB
   `);
 
+  await pool.query(`
+    ALTER TABLE backtest_runs
+    ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)
+  `);
+
   console.log('[DB] Migrations applied.');
 }

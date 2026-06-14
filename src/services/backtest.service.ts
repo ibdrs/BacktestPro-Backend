@@ -6,7 +6,7 @@ import { runBacktestEngine } from '../engine/backtest-engine';
 import { BacktestRunInput } from '../types/backtest';
 
 export async function runBacktest(input: BacktestRunInput) {
-  const { datasetId, strategy, initialCapital, positionSize } = input;
+  const { datasetId, userId, strategy, initialCapital, positionSize } = input;
 
   const dataset = await datasetRepo.findDatasetById(datasetId);
   if (!dataset) {
@@ -15,6 +15,7 @@ export async function runBacktest(input: BacktestRunInput) {
 
   const runId = await backtestRepo.insertBacktestRun({
     dataset_id:            datasetId,
+    user_id:               userId,
     strategy_name:         strategy,
     status:                'running',
     initial_capital:       initialCapital,
@@ -55,19 +56,19 @@ export async function runBacktest(input: BacktestRunInput) {
       equity_curve:          result.equityCurve,
     });
 
-    return getBacktestById(runId);
+    return getBacktestById(runId, userId);
   } catch (err) {
     await backtestRepo.updateBacktestStatus(runId, 'failed');
     throw err;
   }
 }
 
-export async function getAllBacktests() {
-  return backtestRepo.findAllBacktestRuns();
+export async function getAllBacktests(userId: number) {
+  return backtestRepo.findAllBacktestRuns(userId);
 }
 
-export async function getBacktestById(id: number) {
-  const run = await backtestRepo.findBacktestRunById(id);
+export async function getBacktestById(id: number, userId: number) {
+  const run = await backtestRepo.findBacktestRunById(id, userId);
   if (!run) return null;
 
   const trades = await tradeRepo.findTradesByBacktestRunId(id);

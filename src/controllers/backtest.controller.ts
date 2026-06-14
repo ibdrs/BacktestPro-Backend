@@ -16,6 +16,7 @@ export async function createBacktest(
 
     const result = await backtestService.runBacktest({
       datasetId:      Number(req.body.datasetId),
+      userId:         req.user!.id,
       strategy:       req.body.strategy,
       initialCapital: Number(req.body.initialCapital),
       positionSize:   Number(req.body.positionSize),
@@ -28,12 +29,12 @@ export async function createBacktest(
 }
 
 export async function getBacktests(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    res.json(await backtestService.getAllBacktests());
+    res.json(await backtestService.getAllBacktests(req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -51,7 +52,7 @@ export async function getBacktestById(
       return;
     }
 
-    const run = await backtestService.getBacktestById(id);
+    const run = await backtestService.getBacktestById(id, req.user!.id);
     if (!run) {
       res.status(404).json({ error: `Backtest run ${id} not found.` });
       return;

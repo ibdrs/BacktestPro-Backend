@@ -6,9 +6,9 @@ export async function insertBacktestRun(
   run: Omit<BacktestRun, 'id' | 'created_at'>
 ): Promise<number> {
   const { rows } = await pool.query<{ id: number }>(
-    `INSERT INTO backtest_runs (dataset_id, strategy_name, status, initial_capital, position_size)
-     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-    [run.dataset_id, run.strategy_name, run.status, run.initial_capital, run.position_size]
+    `INSERT INTO backtest_runs (dataset_id, strategy_name, status, initial_capital, position_size, user_id)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+    [run.dataset_id, run.strategy_name, run.status, run.initial_capital, run.position_size, run.user_id]
   );
   return rows[0].id;
 }
@@ -55,17 +55,26 @@ export async function updateBacktestStatus(id: number, status: string): Promise<
   await pool.query('UPDATE backtest_runs SET status = $1 WHERE id = $2', [status, id]);
 }
 
-export async function findAllBacktestRuns(): Promise<BacktestRun[]> {
+export async function findAllBacktestRuns(userId: number): Promise<BacktestRun[]> {
   const { rows } = await pool.query<BacktestRun>(
-    'SELECT id, dataset_id, strategy_name, status, initial_capital, position_size, start_date, end_date, final_cash, final_portfolio_value, total_return_pct, created_at, completed_at FROM backtest_runs ORDER BY created_at DESC'
+    `SELECT id, user_id, dataset_id, strategy_name, status, initial_capital, position_size,
+            start_date, end_date, final_cash, final_portfolio_value, total_return_pct,
+            created_at, completed_at
+     FROM backtest_runs
+     WHERE user_id = $1
+     ORDER BY created_at DESC`,
+    [userId]
   );
   return rows;
 }
 
-export async function findBacktestRunById(id: number): Promise<(BacktestRun & { equity_curve: EquityCurvePoint[] }) | undefined> {
+export async function findBacktestRunById(
+  id: number,
+  userId: number
+): Promise<(BacktestRun & { equity_curve: EquityCurvePoint[] }) | undefined> {
   const { rows } = await pool.query<BacktestRun & { equity_curve: EquityCurvePoint[] }>(
-    'SELECT * FROM backtest_runs WHERE id = $1',
-    [id]
+    'SELECT * FROM backtest_runs WHERE id = $1 AND user_id = $2',
+    [id, userId]
   );
   return rows[0];
 }
